@@ -27,3 +27,8 @@ output "eks_cluster_auth_token" {
   value       = data.aws_eks_cluster_auth.this.token
   sensitive   = true
 }
+
+output "eks_fargate_pod_execution_role_arn" {
+  description = "ARN of the EKS Fargate Pod Execution IAM Role"
+  value       = aws_iam_role.eks_fargate_pod.arn
+}

@@ -44,15 +44,23 @@ resource "aws_iam_role" "eks_fargate_pod" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "eks-fargate-pods.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "eks-fargate-pods.amazonaws.com"
+        },
+        Action = "sts:AssumeRole",
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:eks:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
+          }
+        }
+      }
+    ]
   })
 }
+
 
 resource "aws_iam_role_policy_attachment" "eks_fargate_pod" {
   role       = aws_iam_role.eks_fargate_pod.name

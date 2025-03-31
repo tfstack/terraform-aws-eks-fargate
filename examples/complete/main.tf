@@ -6,7 +6,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "5.84.0"
+      version = "5.93.0"
     }
   }
 }
@@ -128,6 +128,50 @@ module "eks_fargate" {
 
   enable_cluster_encryption     = false
   enable_elastic_load_balancing = false
+  eks_log_prevent_destroy       = false
+  eks_log_retention_days        = 1
+
+  # ############################################
+  # # Addons
+  # ############################################
+  # eks_addons = [
+  #   {
+  #     name          = "kube-proxy",
+  #     addon_version = "latest"
+  #   },
+  #   { name          = "vpc-cni",
+  #     addon_version = "latest"
+  #   },
+  #   { name          = "coredns",
+  #     addon_version = "latest"
+  #   },
+  #   { name          = "metrics-server",
+  #     addon_version = "latest"
+  #   }
+  # ]
+
+  fargate_profiles = [
+    {
+      name                   = "default"
+      subnet_ids             = module.vpc.private_subnet_ids
+      pod_execution_role_arn = ""
+
+      selectors = [
+        { namespace = "default" },
+        { namespace = "kube-system" }
+      ]
+    },
+    # {
+    #   name       = "dev-apps"
+    #   subnet_ids = var.private_subnet_ids
+    #   tags = {
+    #     team = "dev"
+    #   }
+    #   selectors = [
+    #     { namespace = "dev", labels = { tier = "backend" } }
+    #   ]
+    # }
+  ]
 }
 
 output "all_module_outputs" {

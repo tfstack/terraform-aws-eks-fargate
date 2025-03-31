@@ -11,6 +11,11 @@ variable "cluster_version" {
   description = "EKS Kubernetes version"
   type        = string
   default     = "latest"
+
+  validation {
+    condition     = trim(var.cluster_version, " ") != ""
+    error_message = "cluster_version must not be an empty string. Use 'latest' or a valid version like '1.29'."
+  }
 }
 
 variable "cluster_enabled_log_types" {
@@ -119,4 +124,70 @@ variable "tags" {
   description = "A map of tags to use on all resources"
   type        = map(string)
   default     = {}
+}
+
+##############################
+# Variables: EKS Add-ons & Fargate
+##############################
+
+variable "eks_addons" {
+  description = "List of EKS add-ons to install with optional configurations"
+  type = list(object({
+    name                        = string
+    addon_version               = optional(string, null)
+    configuration_values        = optional(string, null)
+    resolve_conflicts_on_create = optional(string, "NONE")
+    resolve_conflicts_on_update = optional(string, "NONE")
+    tags                        = optional(map(string), {})
+    preserve                    = optional(bool, false)
+    fargate_required            = optional(bool, false)
+    namespace                   = optional(string, "kube-system")
+    label_override              = optional(string, null)
+  }))
+  default = []
+
+  # validation {
+  #   condition     = length(var.eks_addons) > 0
+  #   error_message = "At least one EKS add-on must be specified."
+  # }
+
+  validation {
+    condition = alltrue([
+      for addon in var.eks_addons : length(setsubtract(keys(addon), [
+        "name", "addon_version", "configuration_values", "resolve_conflicts_on_create",
+        "resolve_conflicts_on_update", "tags", "preserve", "fargate_required",
+        "namespace", "label_override"
+      ])) == 0
+    ])
+    error_message = "Each EKS add-on object must contain only the allowed attributes."
+  }
+
+  validation {
+    condition     = alltrue([for addon in var.eks_addons : addon.resolve_conflicts_on_create == "NONE" || addon.resolve_conflicts_on_create == "OVERWRITE"])
+    error_message = "Valid values for 'resolve_conflicts_on_create' are 'NONE' and 'OVERWRITE'."
+  }
+
+  validation {
+    condition     = alltrue([for addon in var.eks_addons : addon.resolve_conflicts_on_update == "NONE" || addon.resolve_conflicts_on_update == "OVERWRITE" || addon.resolve_conflicts_on_update == "PRESERVE"])
+    error_message = "Valid values for 'resolve_conflicts_on_update' are 'NONE', 'OVERWRITE', and 'PRESERVE'."
+  }
+}
+
+variable "fargate_profiles" {
+  description = "List of Fargate profile configurations"
+  type = list(object({
+    name       = string
+    subnet_ids = list(string)
+    tags       = optional(map(string), {})
+    selectors = list(object({
+      namespace = string
+      labels    = optional(map(string))
+    }))
+  }))
+}
+
+variable "enable_default_fargate_profile" {
+  description = "Enable the default and kube-system Fargate profile"
+  type        = bool
+  default     = true
 }

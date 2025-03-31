@@ -33,7 +33,45 @@ module "cluster" {
   eks_log_retention_days  = var.eks_log_retention_days
 }
 
+locals {
+  default_fargate_profile = [
+    {
+      name       = "default"
+      subnet_ids = var.cluster_vpc_config.private_subnet_ids
+      selectors = [
+        { namespace = "default" },
+        { namespace = "kube-system" }
+      ]
+      tags = {
+        ManagedBy = "terraform"
+      }
+    }
+  ]
+}
 
+module "fargate_profile" {
+  source = "./modules/fargate_profile"
+
+  cluster_name           = module.cluster.cluster_name
+  pod_execution_role_arn = module.cluster.eks_fargate_pod_execution_role_arn
+  profiles = (
+    var.enable_default_fargate_profile
+    ? concat(local.default_fargate_profile, var.fargate_profiles)
+    : var.fargate_profiles
+  )
+}
+
+
+# module "eks_addons" {
+#   source = "./modules/addons"
+
+#   cluster_name = var.cluster_name
+#   eks_addons   = var.eks_addons
+
+#   depends_on = [
+#     module.fargate_profile
+#   ]
+# }
 
 # eks-fargate/
 # ├── examples/
