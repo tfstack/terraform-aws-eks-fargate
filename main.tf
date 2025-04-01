@@ -4,13 +4,99 @@
 # Locals
 #########################################
 
-# locals {
-#   eks_addons_map = { for addon in var.eks_addons : addon.name => addon }
 
-#   enable_metrics_server = anytrue([
-#     for app in var.apps : try(app.autoscaling.enabled, false)
-#   ])
-# }
+locals {
+  default_fargate_profile = tolist([
+    {
+      name       = "default"
+      subnet_ids = var.cluster_vpc_config.private_subnet_ids
+      selectors = tolist([
+        { namespace = "default", labels = null },
+        { namespace = "kube-system", labels = null }
+      ])
+      tags = merge(
+        { "Name" = "${var.cluster_name}-default" },
+        var.tags
+    ) }
+  ])
+
+  default_eks_addons = tolist([
+    # {
+    #   name          = "kube-proxy"
+    #   addon_version = "latest"
+    # },
+    # {
+    #   name          = "vpc-cni"
+    #   addon_version = "latest"
+    # },
+    # {
+    #   name          = "coredns"
+    #   addon_version = "latest"
+    #   configuration_values = jsonencode({
+    #     tolerations = [{
+    #       key      = "CriticalAddonsOnly"
+    #       operator = "Exists"
+    #     }]
+    #     nodeSelector = {
+    #       "eks.amazonaws.com/compute-type" = "fargate"
+    #     }
+    #   })
+    #   resolve_conflicts_on_create = "OVERWRITE"
+    #   resolve_conflicts_on_update = "OVERWRITE"
+    # },
+    # {
+    #   name          = "metrics-server"
+    #   addon_version = "latest"
+    #   configuration_values = jsonencode({
+    #     tolerations = [{
+    #       key      = "CriticalAddonsOnly"
+    #       operator = "Exists"
+    #     }]
+    #     nodeSelector = {
+    #       "eks.amazonaws.com/compute-type" = "fargate"
+    #     }
+    #   })
+    #   resolve_conflicts_on_create = "OVERWRITE"
+    #   resolve_conflicts_on_update = "OVERWRITE"
+    # }
+  ])
+
+  # Map of user overrides
+  eks_addons_map = {
+    for addon in var.eks_addons : addon.name => addon
+  }
+
+  # Schema default to normalize object shape
+  addon_schema_defaults = {
+    addon_version               = null
+    configuration_values        = null
+    resolve_conflicts_on_create = null
+    resolve_conflicts_on_update = null
+    preserve                    = null
+    tags                        = null
+  }
+
+  resolved_eks_addons = (var.enable_eks_addons
+    ? concat(
+      [
+        for default in local.default_eks_addons :
+        merge(
+          local.addon_schema_defaults,
+          default,
+          lookup(local.eks_addons_map, default.name, {})
+        )
+      ],
+      [
+        for name, addon in local.eks_addons_map :
+        merge(local.addon_schema_defaults, addon)
+        if !contains([for d in local.default_eks_addons : d.name], name)
+      ]
+    )
+    : [
+      for addon in var.eks_addons :
+      merge(local.addon_schema_defaults, addon)
+  ])
+}
 
 #########################################
 # Module: EKS Cluster
@@ -33,45 +119,30 @@ module "cluster" {
   eks_log_retention_days  = var.eks_log_retention_days
 }
 
-locals {
-  default_fargate_profile = [
-    {
-      name       = "default"
-      subnet_ids = var.cluster_vpc_config.private_subnet_ids
-      selectors = [
-        { namespace = "default" },
-        { namespace = "kube-system" }
-      ]
-      tags = {
-        ManagedBy = "terraform"
-      }
-    }
-  ]
-}
-
 module "fargate_profile" {
   source = "./modules/fargate_profile"
 
   cluster_name           = module.cluster.cluster_name
   pod_execution_role_arn = module.cluster.eks_fargate_pod_execution_role_arn
+
   profiles = (
     var.enable_default_fargate_profile
-    ? concat(local.default_fargate_profile, var.fargate_profiles)
+    ? tolist(concat(local.default_fargate_profile, var.fargate_profiles))
     : var.fargate_profiles
   )
 }
 
 
-# module "eks_addons" {
-#   source = "./modules/addons"
+module "eks_addons" {
+  source = "./modules/addons"
 
-#   cluster_name = var.cluster_name
-#   eks_addons   = var.eks_addons
+  cluster_name = var.cluster_name
+  eks_addons   = local.resolved_eks_addons
 
-#   depends_on = [
-#     module.fargate_profile
-#   ]
-# }
+  depends_on = [
+    module.fargate_profile
+  ]
+}
 
 # eks-fargate/
 # ├── examples/

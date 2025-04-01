@@ -34,7 +34,7 @@ data "aws_availability_zones" "available" {}
 # data "aws_caller_identity" "current" {}
 
 data "http" "my_public_ip" {
-  url = "http://ifconfig.me/ip"
+  url = "https://ipinfo.io/ip"
 }
 
 ############################################
@@ -83,7 +83,7 @@ module "vpc" {
   tags = local.tags
 
   enable_eks_tags        = true
-  enable_s3_vpc_endpoint = true
+  enable_s3_vpc_endpoint = false
 }
 
 module "eks_fargate" {
@@ -102,7 +102,7 @@ module "eks_fargate" {
   # Networking
   ############################################
   cluster_vpc_config = {
-    subnet_ids           = concat(module.vpc.private_subnet_ids, module.vpc.public_subnet_ids)
+    subnet_ids           = module.vpc.private_subnet_ids #concat(module.vpc.private_subnet_ids, module.vpc.public_subnet_ids)
     private_subnet_ids   = module.vpc.private_subnet_ids
     private_access_cidrs = module.vpc.private_subnet_cidrs
     public_access_cidrs = [
@@ -126,14 +126,16 @@ module "eks_fargate" {
     "scheduler"
   ]
 
-  enable_cluster_encryption     = false
-  enable_elastic_load_balancing = false
-  eks_log_prevent_destroy       = false
-  eks_log_retention_days        = 1
+  enable_cluster_encryption      = false
+  enable_elastic_load_balancing  = false
+  eks_log_prevent_destroy        = false
+  eks_log_retention_days         = 1
+  enable_default_fargate_profile = true
+  enable_eks_addons              = true
 
-  # ############################################
-  # # Addons
-  # ############################################
+  ############################################
+  # Addons
+  ############################################
   # eks_addons = [
   #   {
   #     name          = "kube-proxy",
@@ -150,28 +152,28 @@ module "eks_fargate" {
   #   }
   # ]
 
-  fargate_profiles = [
-    {
-      name                   = "default"
-      subnet_ids             = module.vpc.private_subnet_ids
-      pod_execution_role_arn = ""
+  # fargate_profiles = [
+  #   {
+  #     name                   = "default"
+  #     subnet_ids             = module.vpc.private_subnet_ids
+  #     pod_execution_role_arn = ""
 
-      selectors = [
-        { namespace = "default" },
-        { namespace = "kube-system" }
-      ]
-    },
-    # {
-    #   name       = "dev-apps"
-    #   subnet_ids = var.private_subnet_ids
-    #   tags = {
-    #     team = "dev"
-    #   }
-    #   selectors = [
-    #     { namespace = "dev", labels = { tier = "backend" } }
-    #   ]
-    # }
-  ]
+  #     selectors = [
+  #       { namespace = "default" },
+  #       { namespace = "kube-system" }
+  #     ]
+  #   },
+  #   # {
+  #   #   name       = "dev-apps"
+  #   #   subnet_ids = var.private_subnet_ids
+  #   #   tags = {
+  #   #     team = "dev"
+  #   #   }
+  #   #   selectors = [
+  #   #     { namespace = "dev", labels = { tier = "backend" } }
+  #   #   ]
+  #   # }
+  # ]
 }
 
 output "all_module_outputs" {

@@ -39,11 +39,6 @@ variable "eks_addons" {
   default = []
 
   validation {
-    condition     = length(var.eks_addons) > 0
-    error_message = "At least one EKS add-on must be specified."
-  }
-
-  validation {
     condition = alltrue([
       for addon in var.eks_addons : length(setsubtract(keys(addon), [
         "name", "addon_version", "configuration_values", "resolve_conflicts_on_create",

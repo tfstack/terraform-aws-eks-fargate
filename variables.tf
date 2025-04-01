@@ -146,11 +146,6 @@ variable "eks_addons" {
   }))
   default = []
 
-  # validation {
-  #   condition     = length(var.eks_addons) > 0
-  #   error_message = "At least one EKS add-on must be specified."
-  # }
-
   validation {
     condition = alltrue([
       for addon in var.eks_addons : length(setsubtract(keys(addon), [
@@ -184,10 +179,17 @@ variable "fargate_profiles" {
       labels    = optional(map(string))
     }))
   }))
+  default = []
 }
 
 variable "enable_default_fargate_profile" {
   description = "Enable the default and kube-system Fargate profile"
+  type        = bool
+  default     = true
+}
+
+variable "enable_eks_addons" {
+  description = "Enable EKS addons module"
   type        = bool
   default     = true
 }
