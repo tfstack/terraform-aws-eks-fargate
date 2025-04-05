@@ -2,39 +2,12 @@
 # Security Group for EKS Cluster
 #########################################
 
-resource "aws_security_group" "eks" {
+resource "aws_security_group" "cluster_control_plane" {
   count = var.create_security_group ? 1 : 0
 
-  name   = "${var.cluster_name}-eks-fargate-cluster"
-  vpc_id = var.vpc_id
-
-  #######################################
-  # Ingress Rules
-  #######################################
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = var.cluster_vpc_config.public_access_cidrs
-    description = "Allow API access"
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    self        = true
-    description = "Allow worker nodes to communicate with API server"
-  }
-
-  ingress {
-    from_port   = 1025
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = var.cluster_vpc_config.private_access_cidrs
-    description = "Allow Kubernetes cluster networking"
-  }
+  name        = "${var.cluster_name}-cluster-control-plane"
+  description = "Communication between the control plane and worker nodegroups"
+  vpc_id      = var.vpc_id
 
   #######################################
   # Egress Rules
@@ -49,7 +22,50 @@ resource "aws_security_group" "eks" {
   }
 
   tags = merge(
-    { "Name" = "${var.cluster_name}-eks-fargate-cluster" },
+    {
+      "Name" = "${var.cluster_name}-cluster-control-plane"
+    },
+    var.tags
+  )
+}
+
+resource "aws_security_group" "cluster_nodes" {
+  count = var.create_security_group ? 1 : 0
+
+  name        = "${var.cluster_name}-cluster-nodes"
+  description = "Communication between all nodes in the cluster"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description = "Allow nodes to communicate with each other (all ports)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
+  ingress {
+    description = "Allow managed and unmanaged nodes to communicate with each other (all ports)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+
+    security_groups = [
+      aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+    ]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(
+    {
+      "Name" = "${var.cluster_name}-cluster-nodes"
+    },
     var.tags
   )
 }

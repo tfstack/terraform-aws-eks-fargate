@@ -7,17 +7,35 @@
 
 locals {
   default_fargate_profile = tolist([
-    {
-      name       = "default"
-      subnet_ids = var.cluster_vpc_config.private_subnet_ids
-      selectors = tolist([
-        { namespace = "default", labels = null },
-        { namespace = "kube-system", labels = null }
-      ])
-      tags = merge(
-        { "Name" = "${var.cluster_name}-default" },
-        var.tags
-    ) }
+    # {
+    #   name       = "default"
+    #   subnet_ids = var.cluster_vpc_config.private_subnet_ids
+    #   selectors = tolist([
+    #     { namespace = "default", labels = null },
+    #     { namespace = "kube-system", labels = null }
+    #   ])
+    #   tags = merge(
+    #     { "Name" = "${var.cluster_name}-default" },
+    #     var.tags
+    #   )
+    # },
+    # {
+    #   name       = "coredns"
+    #   subnet_ids = var.cluster_vpc_config.private_subnet_ids
+    #   selectors = tolist([
+    #     {
+    #       namespace = "kube-system"
+    #       labels = {
+    #         "k8s-app" = "kube-dns"
+    #       }
+    #     }
+    #   ])
+
+    #   tags = merge(
+    #     { "Name" = "${var.cluster_name}-coredns" },
+    #     var.tags
+    #   )
+    # }
   ])
 
   default_eks_addons = tolist([

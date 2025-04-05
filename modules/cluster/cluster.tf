@@ -29,7 +29,7 @@ resource "aws_eks_cluster" "this" {
   vpc_config {
     security_group_ids = compact(distinct(concat(
       var.cluster_vpc_config.security_group_ids,
-      var.create_security_group ? [aws_security_group.eks[0].id] : []
+      var.create_security_group ? [aws_security_group.cluster_control_plane[0].id] : []
     )))
     subnet_ids              = var.cluster_vpc_config.subnet_ids
     endpoint_private_access = var.cluster_vpc_config.endpoint_private_access
@@ -91,7 +91,11 @@ resource "aws_eks_cluster" "this" {
   bootstrap_self_managed_addons = false # REQUIRED when EKS Auto Mode is enabled
 
   tags = merge(
-    { "Name" = "${var.cluster_name}-eks-fargate-cluster" },
+    {
+      "Name"                                        = "${var.cluster_name}-eks-fargate-cluster"
+      "alpha.eksctl.io/cluster-name"                = var.cluster_name
+      "eksctl.cluster.k8s.io/v1alpha1/cluster-name" = var.cluster_name
+    },
     var.tags
   )
 
