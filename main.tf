@@ -4,132 +4,15 @@ data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
 #########################################
-# Locals
-#########################################
-
-
-locals {
-  # default_fargate_profile = tolist([
-  #   {
-  #     name       = "default"
-  #     subnet_ids = var.cluster_vpc_config.private_subnet_ids
-  #     selectors = tolist([
-  #       { namespace = "default", labels = null },
-  #       { namespace = "kube-system", labels = null }
-  #     ])
-  #     tags = merge(
-  #       { "Name" = "${var.cluster_name}-default" },
-  #       var.tags
-  #     )
-  #   },
-  #   {
-  #     name       = "coredns"
-  #     subnet_ids = var.cluster_vpc_config.private_subnet_ids
-  #     selectors = tolist([
-  #       {
-  #         namespace = "kube-system"
-  #         labels = {
-  #           "k8s-app" = "kube-dns"
-  #         }
-  #       }
-  #     ])
-
-  #     tags = merge(
-  #       { "Name" = "${var.cluster_name}-coredns" },
-  #       var.tags
-  #     )
-  #   }
-  # ])
-
-  default_eks_addons = tolist([
-    # {
-    #   name          = "kube-proxy"
-    #   addon_version = "latest"
-    # },
-    # {
-    #   name          = "vpc-cni"
-    #   addon_version = "latest"
-    # },
-    # {
-    #   name          = "coredns"
-    #   addon_version = "latest"
-    #   configuration_values = jsonencode({
-    #     tolerations = [{
-    #       key      = "CriticalAddonsOnly"
-    #       operator = "Exists"
-    #     }]
-    #     nodeSelector = {
-    #       "eks.amazonaws.com/compute-type" = "fargate"
-    #     }
-    #   })
-    #   resolve_conflicts_on_create = "OVERWRITE"
-    #   resolve_conflicts_on_update = "OVERWRITE"
-    # },
-    # {
-    #   name          = "metrics-server"
-    #   addon_version = "latest"
-    #   configuration_values = jsonencode({
-    #     tolerations = [{
-    #       key      = "CriticalAddonsOnly"
-    #       operator = "Exists"
-    #     }]
-    #     nodeSelector = {
-    #       "eks.amazonaws.com/compute-type" = "fargate"
-    #     }
-    #   })
-    #   resolve_conflicts_on_create = "OVERWRITE"
-    #   resolve_conflicts_on_update = "OVERWRITE"
-    # }
-  ])
-
-  # Map of user overrides
-  eks_addons_map = {
-    for addon in var.eks_addons : addon.name => addon
-  }
-
-  # Schema default to normalize object shape
-  addon_schema_defaults = {
-    addon_version               = null
-    configuration_values        = null
-    resolve_conflicts_on_create = null
-    resolve_conflicts_on_update = null
-    preserve                    = null
-    tags                        = null
-  }
-
-  resolved_eks_addons = (var.enable_eks_addons
-    ? concat(
-      [
-        for default in local.default_eks_addons :
-        merge(
-          local.addon_schema_defaults,
-          default,
-          lookup(local.eks_addons_map, default.name, {})
-        )
-      ],
-      [
-        for name, addon in local.eks_addons_map :
-        merge(local.addon_schema_defaults, addon)
-        if !contains([for d in local.default_eks_addons : d.name], name)
-      ]
-    )
-    : [
-      for addon in var.eks_addons :
-      merge(local.addon_schema_defaults, addon)
-  ])
-}
-
-#########################################
 # Module: EKS Cluster
 #########################################
 
 module "cluster" {
   source = "./modules/cluster"
 
-  cluster_name    = var.cluster_name
-  cluster_version = var.cluster_version
-  tags            = var.tags
-  # eks_auto_node_role_arn        = module.cluster.eks_auto_node_role_arn
+  cluster_name                  = var.cluster_name
+  cluster_version               = var.cluster_version
+  tags                          = var.tags
   vpc_id                        = var.vpc_id
   cluster_vpc_config            = var.cluster_vpc_config
   cluster_enabled_log_types     = var.cluster_enabled_log_types
@@ -423,7 +306,10 @@ module "addon_cloudwatch_observability" {
   ]
 
   depends_on = [
-    kubernetes_namespace.amazon_cloudwatch
+    module.fp_cloudwatch,
+    kubernetes_namespace.amazon_cloudwatch,
+    kubernetes_service_account.cloudwatch_agent,
+    aws_iam_role_policy_attachment.cloudwatch_irsa_policy
   ]
 }
 
@@ -447,19 +333,148 @@ module "addon_pod_identity_agent" {
   ]
 }
 
-module "helm_charts" {
-  source = "./modules/helm_release"
+resource "aws_iam_role" "fluentbit_irsa" {
+  name = "${var.cluster_name}-fluentbit-irsa"
 
-  helm_charts = [
-    {
-      name       = "fluent-bit"
-      namespace  = "amazon-cloudwatch"
-      repository = "https://aws.github.io/eks-charts"
-      chart      = "aws-for-fluent-bit"
-      set_values = [
-        { name = "cloudWatch.enabled", value = "true" },
-        { name = "cloudWatch.region", value = "ap-southeast-1" }
-      ]
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = module.cluster.oidc_provider_arn
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            "${replace(module.cluster.oidc_provider_arn, ":oidc-provider/", ":sub")}" = "system:serviceaccount:amazon-cloudwatch:${var.fluentbit_sa_name}"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "fluentbit_cloudwatch" {
+  role       = aws_iam_role.fluentbit_irsa.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "kubernetes_service_account" "fluentbit" {
+  metadata {
+    name      = var.fluentbit_sa_name
+    namespace = "amazon-cloudwatch"
+
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.fluentbit_irsa.arn
     }
+  }
+
+  depends_on = [
+    kubernetes_namespace.amazon_cloudwatch
+  ]
+}
+
+resource "kubernetes_config_map" "fluentbit_config" {
+  metadata {
+    name      = "fluent-bit-config"
+    namespace = "amazon-cloudwatch"
+  }
+
+  data = {
+    "fluent-bit.conf" = <<-EOT
+      [SERVICE]
+          Flush        1
+          Daemon       Off
+          Log_Level    info
+          Parsers_File parsers.conf
+
+      [INPUT]
+          Name              forward
+          Listen            0.0.0.0
+          Port              24224
+
+      [OUTPUT]
+          Name              cloudwatch_logs
+          Match             *
+          region            ap-southeast-1
+          log_group_name    /aws/eks/${var.cluster_name}/fluent-bit
+          log_stream_prefix fargate-
+          auto_create_group false
+    EOT
+
+    "parsers.conf" = <<-EOT
+      [PARSER]
+          Name   json
+          Format json
+    EOT
+  }
+}
+
+resource "kubernetes_deployment" "fluentbit" {
+  metadata {
+    name      = "fluent-bit"
+    namespace = "amazon-cloudwatch"
+    labels = {
+      app = "fluent-bit"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "fluent-bit"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app                      = "fluent-bit"
+          "app.kubernetes.io/name" = "amazon-cloudwatch-observability"
+        }
+      }
+
+      spec {
+        service_account_name = kubernetes_service_account.fluentbit.metadata[0].name
+
+        container {
+          name    = "fluent-bit"
+          image   = "public.ecr.aws/aws-observability/aws-for-fluent-bit:latest"
+          command = ["/fluent-bit/bin/fluent-bit"]
+          args    = ["-c", "/fluent-bit/etc/fluent-bit.conf"]
+
+          resources {
+            requests = {
+              cpu    = "100m"
+              memory = "128Mi"
+            }
+          }
+
+          volume_mount {
+            name       = "config"
+            mount_path = "/fluent-bit/etc/"
+          }
+        }
+
+        volume {
+          name = "config"
+          config_map {
+            name = kubernetes_config_map.fluentbit_config.metadata[0].name
+          }
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    replace_triggered_by = [kubernetes_config_map.fluentbit_config]
+  }
+
+  depends_on = [
+    kubernetes_config_map.fluentbit_config,
+    kubernetes_service_account.fluentbit
   ]
 }

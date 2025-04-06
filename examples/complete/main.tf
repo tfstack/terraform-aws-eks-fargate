@@ -141,6 +141,10 @@ module "eks_fargate" {
   enable_pod_identity_agent_addon  = true
   pod_identity_agent_addon_version = "latest"
 
+  enable_fluentbit        = true
+  fluentbit_chart_version = "2.32.5.20250327"
+  fluentbit_sa_name       = "fluent-bit"
+
   enable_eks_addons = true
 
   # eks_addons = [

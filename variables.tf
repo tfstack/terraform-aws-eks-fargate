@@ -303,6 +303,17 @@ variable "enable_fluentbit" {
   }
 }
 
+variable "fluentbit_chart_version" {
+  description = "Specify the version of the Fluent Bit Helm chart. Leave unset to use the most recent available."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.fluentbit_chart_version != "latest"
+    error_message = "\"latest\" is not allowed. Leave unset or null to install the latest version."
+  }
+}
+
 variable "fluentbit_sa_name" {
   description = "Service account name used by Fluent Bit"
   type        = string

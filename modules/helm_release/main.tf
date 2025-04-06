@@ -5,11 +5,15 @@ resource "helm_release" "this" {
     if chart.enabled != false
   }
 
-  name             = each.value.name
-  namespace        = each.value.namespace
-  repository       = each.value.repository
-  chart            = each.value.chart
-  version          = try(each.value.chart_version, null)
+  name       = each.value.name
+  namespace  = each.value.namespace
+  repository = each.value.repository
+  chart      = each.value.chart
+  version    = try(trimspace(each.value.chart_version), "") != "" ? try(trimspace(each.value.chart_version), "") : null
+
+
+
+
   create_namespace = try(each.value.create_namespace, true)
   values           = try(each.value.values_files, [])
 
