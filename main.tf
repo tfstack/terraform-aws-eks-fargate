@@ -397,7 +397,7 @@ resource "kubernetes_config_map" "fluentbit_config" {
       [OUTPUT]
           Name              cloudwatch_logs
           Match             *
-          region            ap-southeast-1
+          region            ${data.aws_region.current.name}
           log_group_name    /aws/eks/${var.cluster_name}/fluent-bit
           log_stream_prefix fargate-
           auto_create_group false
@@ -409,6 +409,10 @@ resource "kubernetes_config_map" "fluentbit_config" {
           Format json
     EOT
   }
+
+  depends_on = [
+    kubernetes_namespace.amazon_cloudwatch
+  ]
 }
 
 resource "kubernetes_deployment" "fluentbit" {
