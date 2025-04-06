@@ -101,6 +101,12 @@ variable "enable_elastic_load_balancing" {
   default     = true
 }
 
+variable "enable_oidc" {
+  description = "Enable IAM OIDC provider on the EKS cluster"
+  type        = bool
+  default     = true
+}
+
 ##############################
 # CloudWatch Logging
 ##############################

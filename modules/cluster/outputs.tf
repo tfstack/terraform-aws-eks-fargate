@@ -32,3 +32,8 @@ output "eks_fargate_pod_execution_role_arn" {
   description = "ARN of the EKS Fargate Pod Execution IAM Role"
   value       = aws_iam_role.eks_fargate_pod.arn
 }
+
+output "oidc_provider_arn" {
+  description = "OIDC provider ARN for the EKS cluster, used for IRSA"
+  value       = try(aws_iam_openid_connect_provider.this[0].arn, null)
+}

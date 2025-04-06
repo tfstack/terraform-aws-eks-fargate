@@ -42,7 +42,7 @@ data "http" "my_public_ip" {
 ############################################
 
 locals {
-  name      = "cltest"
+  name      = "cltest2"
   base_name = "${local.name}-${random_string.suffix.result}"
 
   eks_cluster_version = "1.32"
@@ -83,41 +83,30 @@ module "vpc" {
   tags = local.tags
 
   enable_eks_tags        = true
+  eks_cluster_name       = local.name
   enable_s3_vpc_endpoint = false
 }
 
 module "eks_fargate" {
   source = "../.."
 
-  ############################################
-  # General Config
-  ############################################
   vpc_id          = module.vpc.vpc_id
   cluster_name    = local.name
-  cluster_version = "latest"
+  cluster_version = local.eks_cluster_version
+  tags            = local.tags
 
-  tags = local.tags
-
-  ############################################
-  # Networking
-  ############################################
   cluster_vpc_config = {
-    subnet_ids           = module.vpc.private_subnet_ids #concat(module.vpc.private_subnet_ids, module.vpc.public_subnet_ids)
+    subnet_ids           = module.vpc.private_subnet_ids
     private_subnet_ids   = module.vpc.private_subnet_ids
     private_access_cidrs = module.vpc.private_subnet_cidrs
-    public_access_cidrs = [
-      "${data.http.my_public_ip.response_body}/32"
-    ] # exercise with cautious
-    service_cidr = local.service_cidr
+    public_access_cidrs  = ["0.0.0.0/0"] #["${data.http.my_public_ip.response_body}/32"]
+    service_cidr         = local.service_cidr
 
     security_group_ids      = []
     endpoint_private_access = false
-    endpoint_public_access  = true # exercise with cautious
+    endpoint_public_access  = true
   }
 
-  ############################################
-  # Logging & Monitoring
-  ############################################
   cluster_enabled_log_types = [
     "api",
     "audit",
@@ -126,57 +115,56 @@ module "eks_fargate" {
     "scheduler"
   ]
 
-  enable_cluster_encryption      = false
-  enable_elastic_load_balancing  = false
-  eks_log_prevent_destroy        = false
-  eks_log_retention_days         = 1
-  enable_default_fargate_profile = true
-  enable_eks_addons              = true
+  enable_cluster_encryption     = false
+  enable_elastic_load_balancing = false
+  enable_oidc                   = true
+  eks_log_prevent_destroy       = false
+  eks_log_retention_days        = 1
 
-  ############################################
-  # Addons
-  ############################################
+  enable_default_fargate_profile = true
+
+  enable_coredns_addon  = true
+  coredns_addon_version = "latest"
+
+  enable_kube_proxy_addon  = true
+  kube_proxy_addon_version = "latest"
+
+  enable_vpc_cni_addon  = true
+  vpc_cni_addon_version = "latest"
+
+  enable_metrics_server_addon  = true
+  metrics_server_addon_version = "latest"
+
+  enable_cloudwatch_observability_addon  = true
+  cloudwatch_observability_addon_version = "latest"
+
+  enable_pod_identity_agent_addon  = true
+  pod_identity_agent_addon_version = "latest"
+
+  enable_eks_addons = true
+
   # eks_addons = [
   #   {
-  #     name          = "kube-proxy",
+  #     name          = "kube-proxy"
   #     addon_version = "latest"
   #   },
-  #   { name          = "vpc-cni",
+  #   {
+  #     name          = "vpc-cni"
   #     addon_version = "latest"
   #   },
-  #   { name          = "coredns",
+  #   {
+  #     name          = "coredns"
   #     addon_version = "latest"
   #   },
-  #   { name          = "metrics-server",
+  #   {
+  #     name          = "metrics-server"
   #     addon_version = "latest"
   #   }
   # ]
-
-  # fargate_profiles = [
-  #   {
-  #     name                   = "default"
-  #     subnet_ids             = module.vpc.private_subnet_ids
-  #     pod_execution_role_arn = ""
-
-  #     selectors = [
-  #       { namespace = "default" },
-  #       { namespace = "kube-system" }
-  #     ]
-  #   },
-  #   # {
-  #   #   name       = "dev-apps"
-  #   #   subnet_ids = var.private_subnet_ids
-  #   #   tags = {
-  #   #     team = "dev"
-  #   #   }
-  #   #   selectors = [
-  #   #     { namespace = "dev", labels = { tier = "backend" } }
-  #   #   ]
-  #   # }
-  # ]
 }
 
-output "all_module_outputs" {
-  description = "All outputs from the EKS Fargate module"
-  value       = module.eks_fargate
-}
+
+# output "all_module_outputs" {
+#   description = "All outputs from the EKS Fargate module"
+#   value       = module.eks_fargate
+# }

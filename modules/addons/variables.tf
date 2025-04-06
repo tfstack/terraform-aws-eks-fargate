@@ -32,9 +32,6 @@ variable "eks_addons" {
     resolve_conflicts_on_update = optional(string, "NONE")
     tags                        = optional(map(string), {})
     preserve                    = optional(bool, false)
-    fargate_required            = optional(bool, false)
-    namespace                   = optional(string, "kube-system")
-    label_override              = optional(string, null)
   }))
   default = []
 
@@ -42,8 +39,7 @@ variable "eks_addons" {
     condition = alltrue([
       for addon in var.eks_addons : length(setsubtract(keys(addon), [
         "name", "addon_version", "configuration_values", "resolve_conflicts_on_create",
-        "resolve_conflicts_on_update", "tags", "preserve", "fargate_required",
-        "namespace", "label_override"
+        "resolve_conflicts_on_update", "tags", "preserve"
       ])) == 0
     ])
     error_message = "Each EKS add-on object must contain only the allowed attributes."

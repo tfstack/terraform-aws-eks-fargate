@@ -188,8 +188,128 @@ variable "enable_default_fargate_profile" {
   default     = true
 }
 
+variable "enable_coredns_addon" {
+  description = "Enable the CoreDNS EKS addon"
+  type        = bool
+  default     = true
+
+  validation {
+    condition     = var.enable_coredns_addon == false || var.enable_default_fargate_profile == true
+    error_message = "CoreDNS addon requires enable_default_fargate_profile = true"
+  }
+}
+
+variable "coredns_addon_version" {
+  description = "Version of the CoreDNS addon"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_kube_proxy_addon" {
+  description = "Enable the kube-proxy EKS addon"
+  type        = bool
+  default     = true
+}
+
+variable "kube_proxy_addon_version" {
+  description = "Version of the kube-proxy addon"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_vpc_cni_addon" {
+  description = "Enable the VPC CNI EKS addon"
+  type        = bool
+  default     = true
+}
+
+variable "vpc_cni_addon_version" {
+  description = "Version of the VPC CNI addon"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_metrics_server_addon" {
+  description = "Enable the Metrics Server EKS addon"
+  type        = bool
+  default     = true
+
+  validation {
+    condition     = var.enable_metrics_server_addon == false || var.enable_default_fargate_profile == true
+    error_message = "Metrics Server addon requires enable_default_fargate_profile = true"
+  }
+}
+
+variable "metrics_server_addon_version" {
+  description = "Version of the Metrics Server EKS addon"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_cloudwatch_observability_addon" {
+  description = "Enable the Amazon CloudWatch Observability EKS addon"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = var.enable_cloudwatch_observability_addon == false || var.enable_oidc == true
+    error_message = "enable_oidc must be true when enable_cloudwatch_observability_addon is true."
+  }
+}
+
+variable "cloudwatch_observability_addon_version" {
+  description = "Version of the Amazon CloudWatch Observability addon"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_pod_identity_agent_addon" {
+  description = "Enable the EKS Pod Identity Agent addon"
+  type        = bool
+  default     = true
+
+  validation {
+    condition     = var.enable_pod_identity_agent_addon == false || var.enable_oidc == true
+    error_message = "enable_oidc must be true when enable_pod_identity_agent_addon is true."
+  }
+}
+
+variable "pod_identity_agent_addon_version" {
+  description = "Version of the Pod Identity Agent addon"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_oidc" {
+  description = "Enable IAM OIDC provider on the EKS cluster"
+  type        = bool
+  default     = true
+}
+
 variable "enable_eks_addons" {
   description = "Enable EKS addons module"
   type        = bool
   default     = true
+}
+
+variable "enable_fluentbit" {
+  description = "Enable Fluent Bit logging integration with CloudWatch"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = var.enable_fluentbit == false || var.enable_cloudwatch_observability_addon == true
+    error_message = "CloudWatch Observability must be enabled (enable_cloudwatch_observability_addon = true) when Fluent Bit is enabled."
+  }
+}
+
+variable "fluentbit_sa_name" {
+  description = "Service account name used by Fluent Bit"
+  type        = string
+  default     = "fluent-bit"
+
+  validation {
+    condition     = length(trim(var.fluentbit_sa_name, " ")) > 0
+    error_message = "fluentbit_sa_name must not be an empty or whitespace-only string."
+  }
 }
