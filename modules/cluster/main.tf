@@ -77,7 +77,7 @@ resource "aws_iam_role" "eks_fargate_pod" {
         Action = "sts:AssumeRole",
         Condition = {
           ArnLike = {
-            "aws:SourceArn" = "arn:aws:eks:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
+            "aws:SourceArn" = "arn:aws:eks:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
           }
         }
       }

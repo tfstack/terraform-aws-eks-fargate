@@ -6,13 +6,13 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "5.97.0"
+      version = ">= 6.0.0"
     }
   }
 }
 
 provider "aws" {
-  region = "ap-southeast-1"
+  region = "ap-southeast-2"
 }
 
 ############################################
@@ -22,7 +22,7 @@ provider "aws" {
 data "aws_availability_zones" "available" {}
 
 data "http" "my_public_ip" {
-  url = "https://ipinfo.io/ip"
+  url = "https://checkip.amazonaws.com/"
 }
 
 ############################################

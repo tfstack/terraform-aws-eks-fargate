@@ -103,7 +103,7 @@ module "cloudwatch_logging" {
   enabled = var.enable_cloudwatch_observability
 
   cluster_name                    = var.cluster_name
-  region                          = data.aws_region.current.name
+  region                          = data.aws_region.current.region
   account_id                      = data.aws_caller_identity.current.account_id
   fargate_pod_execution_role_name = module.cluster.eks_fargate_pod_execution_role_name
   log_prevent_destroy             = var.eks_log_prevent_destroy
