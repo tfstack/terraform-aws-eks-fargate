@@ -11,6 +11,17 @@ locals {
 
   effective_namespace_labels      = try(var.namespace_metadata.labels, {})
   effective_namespace_annotations = try(var.namespace_metadata.annotations, {})
+
+  # Service-related locals
+  target_namespace = var.create_namespace ? kubernetes_namespace.this[0].metadata[0].name : var.namespace
+  common_labels = merge(
+    var.labels,
+    {
+      "app"                        = var.name
+      "app.kubernetes.io/name"     = var.name
+      "app.kubernetes.io/instance" = var.name
+    }
+  )
 }
 
 #########################################
@@ -69,7 +80,7 @@ resource "aws_iam_role_policy_attachment" "this" {
 resource "kubernetes_service_account" "this" {
   metadata {
     name      = local.sa_name
-    namespace = var.namespace
+    namespace = local.target_namespace
 
     annotations = var.irsa.enabled ? {
       "eks.amazonaws.com/role-arn" = aws_iam_role.irsa[0].arn
@@ -86,7 +97,7 @@ resource "kubernetes_config_map" "this" {
 
   metadata {
     name      = each.key
-    namespace = var.namespace
+    namespace = local.target_namespace
   }
 
   data = each.value.data
@@ -105,8 +116,8 @@ resource "null_resource" "configmap_trigger" {
 resource "kubernetes_deployment" "this" {
   metadata {
     name      = var.name
-    namespace = var.namespace
-    labels    = merge({ app = var.name }, var.labels)
+    namespace = local.target_namespace
+    labels    = local.common_labels
 
     annotations = merge(
       var.logging.enabled ? {
@@ -236,5 +247,45 @@ resource "kubernetes_deployment" "this" {
   depends_on = [
     null_resource.configmap_trigger,
     kubernetes_service_account.this
+  ]
+}
+
+#########################################
+# Kubernetes Service for CloudMap Integration
+#########################################
+
+resource "kubernetes_service" "this" {
+  count = var.create_service ? 1 : 0
+
+  metadata {
+    name      = var.name
+    namespace = local.target_namespace
+    labels    = local.common_labels
+    annotations = merge(
+      var.service_annotations,
+      var.enable_cloudmap_registration ? {
+        "service.cloudmap/register" = "true"
+      } : {}
+    )
+  }
+
+  spec {
+    selector = local.common_labels
+
+    dynamic "port" {
+      for_each = var.service_ports
+      content {
+        name        = port.value.name
+        port        = port.value.port
+        target_port = port.value.target_port
+        protocol    = try(port.value.protocol, "TCP")
+      }
+    }
+
+    type = var.service_type
+  }
+
+  depends_on = [
+    kubernetes_deployment.this
   ]
 }

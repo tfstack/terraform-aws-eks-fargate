@@ -8,7 +8,11 @@ locals {
       name       = "default"
       subnet_ids = var.private_subnet_ids
       tags       = {}
-      selectors  = [{ namespace = "default" }]
+      selectors = [
+        { namespace = "default" },
+        { namespace = "kube-system" },
+        { namespace = "cloudmap-system" }
+      ]
     } : null,
 
     var.enable_coredns ? {

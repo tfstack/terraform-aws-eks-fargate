@@ -94,6 +94,24 @@ module "addons" {
 }
 
 #########################################
+# Module: AWS Load Balancer Controller
+#########################################
+
+module "aws_load_balancer_controller" {
+  source = "./modules/aws-load-balancer-controller"
+
+  enabled           = var.enable_aws_load_balancer_controller
+  cluster_name      = var.cluster_name
+  vpc_id            = var.vpc_id
+  oidc_provider_arn = module.cluster.oidc_provider_arn
+  tags              = var.tags
+
+  depends_on = [
+    module.addons
+  ]
+}
+
+#########################################
 # Module: CloudWatch Logging
 #########################################
 
@@ -136,6 +154,27 @@ module "cloudmap" {
 }
 
 #########################################
+# Module: CloudMap Controller for K8s
+#########################################
+
+module "cloudmap_controller" {
+  source = "./modules/cloudmap-controller"
+  count  = var.enable_cloudmap && var.enable_cloudmap_controller ? 1 : 0
+
+  cluster_name                    = var.cluster_name
+  vpc_id                          = var.vpc_id
+  oidc_provider_arn               = module.cluster.oidc_provider_arn
+  cloudmap_namespace_name         = var.cloudmap_namespace_name
+  enable_load_balancer_controller = var.enable_cloudmap_load_balancer_integration
+  tags                            = var.tags
+
+  depends_on = [
+    module.addons,
+    module.cloudmap
+  ]
+}
+
+#########################################
 # Module: Workloads
 #########################################
 
@@ -174,6 +213,13 @@ module "workload" {
   init_containers = try(each.value.init_containers, [])
   volumes         = try(each.value.volumes, [])
   configmaps      = try(each.value.configmaps, [])
+
+  # Service configuration
+  create_service               = try(each.value.create_service, false)
+  service_type                 = try(each.value.service_type, "ClusterIP")
+  service_ports                = try(each.value.service_ports, [])
+  service_annotations          = try(each.value.service_annotations, {})
+  enable_cloudmap_registration = try(each.value.enable_cloudmap_registration, false)
 
   depends_on = [
     module.addons,

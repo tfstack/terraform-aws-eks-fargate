@@ -77,7 +77,7 @@ module "vpc" {
   tags = local.tags
 
   enable_eks_tags  = true
-  eks_cluster_name = local.name
+  eks_cluster_name = local.base_name
 }
 
 ############################################
@@ -88,7 +88,7 @@ module "eks_fargate" {
   source = "../.."
 
   vpc_id          = module.vpc.vpc_id
-  cluster_name    = local.name
+  cluster_name    = local.base_name
   cluster_version = local.eks_cluster_version
   tags            = local.tags
 
@@ -174,11 +174,25 @@ module "eks_fargate" {
         policy_arns               = []
       }
 
+      # Enable CloudMap service discovery
+      create_service               = true
+      enable_cloudmap_registration = true
+      service_type                 = "ClusterIP"
+      service_ports = [{
+        name        = "http"
+        port        = 80
+        target_port = 80
+        protocol    = "TCP"
+      }]
+
       containers = [{
         name    = "logger"
         image   = "public.ecr.aws/bitnami/nginx"
         command = ["/bin/sh", "-c"]
         args    = ["while true; do echo hello from nginx $(date); sleep 5; done"]
+        ports = [{
+          containerPort = 80
+        }]
       }]
     }
   ]
@@ -188,6 +202,8 @@ module "eks_fargate" {
   cloudmap_namespace_name                    = "demo.internal"
   cloudmap_namespace_description             = "Demo namespace for service discovery"
   cloudmap_create_ecs_service_discovery_role = true
+  enable_cloudmap_controller                 = true
+  enable_cloudmap_load_balancer_integration  = false
   cloudmap_services = {
     "api-service" = {
       name                                  = "api-service"

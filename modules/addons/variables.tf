@@ -30,6 +30,28 @@ variable "addon_versions" {
 }
 
 #########################################
+# AWS Load Balancer Controller Variables
+#########################################
+
+variable "enable_aws_load_balancer_controller" {
+  description = "Enable AWS Load Balancer Controller addon"
+  type        = bool
+  default     = false
+}
+
+variable "aws_load_balancer_controller_addon_version" {
+  description = "Version of AWS Load Balancer Controller addon to use"
+  type        = string
+  default     = null
+}
+
+variable "oidc_provider_arn" {
+  description = "ARN of the OIDC provider for the EKS cluster"
+  type        = string
+  default     = null
+}
+
+#########################################
 # Common Tags
 #########################################
 

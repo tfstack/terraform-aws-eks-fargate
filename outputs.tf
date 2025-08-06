@@ -164,3 +164,22 @@ output "cloudmap_ecs_service_discovery_role_name" {
   description = "Name of the ECS service discovery IAM role"
   value       = try(module.cloudmap[0].ecs_service_discovery_role_name, null)
 }
+
+#########################################
+# CloudMap Controller Outputs
+#########################################
+
+output "cloudmap_controller_namespace" {
+  description = "Namespace where the CloudMap controller is deployed"
+  value       = var.enable_cloudmap && var.enable_cloudmap_controller ? module.cloudmap_controller[0].controller_namespace : null
+}
+
+output "cloudmap_controller_service_account" {
+  description = "Service account name for the CloudMap controller"
+  value       = var.enable_cloudmap && var.enable_cloudmap_controller ? module.cloudmap_controller[0].controller_service_account_name : null
+}
+
+output "cloudmap_controller_role_arn" {
+  description = "IAM role ARN for the CloudMap controller"
+  value       = var.enable_cloudmap && var.enable_cloudmap_controller ? module.cloudmap_controller[0].controller_role_arn : null
+}

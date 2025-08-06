@@ -103,6 +103,45 @@ variable "configmaps" {
   default = []
 }
 
+#########################################
+# Service Configuration
+#########################################
+
+variable "create_service" {
+  description = "Whether to create a Kubernetes Service for this workload"
+  type        = bool
+  default     = false
+}
+
+variable "service_type" {
+  description = "Type of Kubernetes Service (ClusterIP, NodePort, LoadBalancer)"
+  type        = string
+  default     = "ClusterIP"
+}
+
+variable "service_ports" {
+  description = "List of ports to expose on the service"
+  type = list(object({
+    name        = string
+    port        = number
+    target_port = number
+    protocol    = optional(string, "TCP")
+  }))
+  default = []
+}
+
+variable "service_annotations" {
+  description = "Annotations to add to the service"
+  type        = map(string)
+  default     = {}
+}
+
+variable "enable_cloudmap_registration" {
+  description = "Whether to enable CloudMap service registration for this service"
+  type        = bool
+  default     = false
+}
+
 variable "replicas" {
   description = "Number of pod replicas to run"
   type        = number

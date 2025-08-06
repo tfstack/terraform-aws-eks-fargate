@@ -251,12 +251,24 @@ variable "workloads" {
     irsa = optional(object({
       enabled                   = bool
       use_cluster_oidc_provider = optional(bool, false)
-      policy_arns               = optional(list(string))
+      policy_arns               = optional(list(string), [])
     }), { enabled = false })
     containers      = list(any)
     init_containers = optional(list(any), [])
     volumes         = optional(list(any), [])
     configmaps      = optional(list(any), [])
+
+    # Service configuration
+    create_service = optional(bool, false)
+    service_type   = optional(string, "ClusterIP")
+    service_ports = optional(list(object({
+      name        = string
+      port        = number
+      target_port = number
+      protocol    = optional(string, "TCP")
+    })), [])
+    service_annotations          = optional(map(string), {})
+    enable_cloudmap_registration = optional(bool, false)
   }))
   default = []
 
@@ -265,7 +277,7 @@ variable "workloads" {
       for w in var.workloads : (
         !try(w.irsa.enabled, false) || (
           try(w.irsa.oidc_provider_arn, null) != null &&
-          length(try(w.irsa.policy_arns, [])) > 0
+          length(coalesce(try(w.irsa.policy_arns, null), [])) > 0
         )
       )
     ])
@@ -319,6 +331,34 @@ variable "cloudmap_create_ecs_service_discovery_role" {
   description = "Whether to create IAM role for ECS service discovery"
   type        = bool
   default     = false
+}
+
+variable "enable_cloudmap_controller" {
+  description = "Enable CloudMap controller for Kubernetes service discovery"
+  type        = bool
+  default     = false
+}
+
+variable "enable_cloudmap_load_balancer_integration" {
+  description = "Enable AWS Load Balancer Controller integration with CloudMap"
+  type        = bool
+  default     = false
+}
+
+#########################################
+# AWS Load Balancer Controller Configuration
+#########################################
+
+variable "enable_aws_load_balancer_controller" {
+  description = "Enable AWS Load Balancer Controller addon"
+  type        = bool
+  default     = false
+}
+
+variable "aws_load_balancer_controller_addon_version" {
+  description = "Version of AWS Load Balancer Controller addon to use"
+  type        = string
+  default     = null
 }
 
 #########################################
