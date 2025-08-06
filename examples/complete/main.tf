@@ -19,8 +19,6 @@ provider "aws" {
 # Data Sources
 ############################################
 
-data "aws_availability_zones" "available" {}
-
 data "http" "my_public_ip" {
   url = "https://checkip.amazonaws.com/"
 }
@@ -40,9 +38,14 @@ resource "random_string" "suffix" {
 ############################################
 
 locals {
-  name      = "cltest"
-  base_name = "${local.name}-${random_string.suffix.result}"
-
+  azs                 = ["ap-southeast-2a", "ap-southeast-2b", "ap-southeast-2c"]
+  name                = "cltest"
+  base_name           = local.suffix != "" ? "${local.name}-${local.suffix}" : local.name
+  suffix              = random_string.suffix.result
+  private_subnets     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  public_subnets      = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  region              = "ap-southeast-2"
+  vpc_cidr            = "10.0.0.0/16"
   eks_cluster_version = "1.32"
   service_cidr        = "10.100.0.0/16"
 
@@ -57,25 +60,24 @@ locals {
 ############################################
 
 module "vpc" {
-  source = "tfstack/vpc/aws"
+  source = "cloudbuildlab/vpc/aws"
 
   vpc_name           = local.base_name
-  vpc_cidr           = "10.0.0.0/16"
-  availability_zones = slice(data.aws_availability_zones.available.names, 0, 3)
+  vpc_cidr           = local.vpc_cidr
+  availability_zones = local.azs
 
-  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  private_subnets = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  public_subnet_cidrs  = local.public_subnets
+  private_subnet_cidrs = local.private_subnets
 
-  jumphost_instance_create = false
-
-  create_igw = true
-  ngw_type   = "single"
+  # Enable Internet Gateway & NAT Gateway
+  # A single NAT gateway is used instead of multiple for cost efficiency.
+  create_igw       = true
+  nat_gateway_type = "single"
 
   tags = local.tags
 
-  enable_eks_tags        = true
-  eks_cluster_name       = local.name
-  enable_s3_vpc_endpoint = false
+  enable_eks_tags  = true
+  eks_cluster_name = local.name
 }
 
 ############################################
@@ -182,7 +184,7 @@ module "eks_fargate" {
   ]
 
   # CloudMap Service Discovery
-  enable_cloudmap                            = false
+  enable_cloudmap                            = true
   cloudmap_namespace_name                    = "demo.internal"
   cloudmap_namespace_description             = "Demo namespace for service discovery"
   cloudmap_create_ecs_service_discovery_role = true
