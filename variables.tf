@@ -274,6 +274,54 @@ variable "workloads" {
 }
 
 #########################################
+# CloudMap Service Discovery Configuration
+#########################################
+
+variable "enable_cloudmap" {
+  description = "Enable CloudMap service discovery"
+  type        = bool
+  default     = false
+}
+
+variable "cloudmap_namespace_name" {
+  description = "Name of the CloudMap namespace"
+  type        = string
+  default     = null
+}
+
+variable "cloudmap_namespace_description" {
+  description = "Description of the CloudMap namespace"
+  type        = string
+  default     = null
+}
+
+variable "cloudmap_services" {
+  description = "Map of CloudMap services to create"
+  type = map(object({
+    name            = string
+    description     = optional(string)
+    dns_ttl         = optional(number, 10)
+    dns_record_type = optional(string, "A")
+    routing_policy  = optional(string, "MULTIVALUE")
+    health_check_config = optional(object({
+      resource_path     = string
+      type              = string
+      failure_threshold = optional(number, 3)
+    }))
+    health_check_custom_config            = optional(bool, false)
+    custom_health_check_failure_threshold = optional(number, 1)
+    tags                                  = optional(map(string), {})
+  }))
+  default = {}
+}
+
+variable "cloudmap_create_ecs_service_discovery_role" {
+  description = "Whether to create IAM role for ECS service discovery"
+  type        = bool
+  default     = false
+}
+
+#########################################
 # Common Metadata and Tagging
 #########################################
 variable "tags" {

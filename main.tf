@@ -115,6 +115,27 @@ module "cloudwatch_logging" {
 }
 
 #########################################
+# Module: CloudMap Service Discovery
+#########################################
+
+module "cloudmap" {
+  source = "tfstack/cloudmap/aws"
+  count  = var.enable_cloudmap ? 1 : 0
+
+  create_private_dns_namespace      = var.enable_cloudmap
+  namespace_name                    = var.cloudmap_namespace_name
+  namespace_description             = var.cloudmap_namespace_description
+  vpc_id                            = var.vpc_id
+  services                          = var.cloudmap_services
+  create_ecs_service_discovery_role = var.cloudmap_create_ecs_service_discovery_role
+  tags                              = var.tags
+
+  depends_on = [
+    module.cloudwatch_logging
+  ]
+}
+
+#########################################
 # Module: Workloads
 #########################################
 

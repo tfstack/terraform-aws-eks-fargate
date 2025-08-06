@@ -125,3 +125,42 @@ output "workload_configmap_names" {
     k => m.configmap_names
   }
 }
+
+#########################################
+# CloudMap Service Discovery
+#########################################
+
+output "cloudmap_namespace_id" {
+  description = "ID of the created CloudMap namespace"
+  value       = try(module.cloudmap[0].namespace_id, null)
+}
+
+output "cloudmap_namespace_name" {
+  description = "Name of the created CloudMap namespace"
+  value       = try(module.cloudmap[0].namespace_name, null)
+}
+
+output "cloudmap_namespace_arn" {
+  description = "ARN of the created CloudMap namespace"
+  value       = try(module.cloudmap[0].namespace_arn, null)
+}
+
+output "cloudmap_services" {
+  description = "Map of created CloudMap services with their details"
+  value       = try(module.cloudmap[0].services, {})
+}
+
+output "cloudmap_service_arns" {
+  description = "Map of service names to their ARNs for ECS integration"
+  value       = try(module.cloudmap[0].service_arns, {})
+}
+
+output "cloudmap_ecs_service_discovery_role_arn" {
+  description = "ARN of the ECS service discovery IAM role"
+  value       = try(module.cloudmap[0].ecs_service_discovery_role_arn, null)
+}
+
+output "cloudmap_ecs_service_discovery_role_name" {
+  description = "Name of the ECS service discovery IAM role"
+  value       = try(module.cloudmap[0].ecs_service_discovery_role_name, null)
+}

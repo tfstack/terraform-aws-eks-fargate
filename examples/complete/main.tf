@@ -180,6 +180,22 @@ module "eks_fargate" {
       }]
     }
   ]
+
+  # CloudMap Service Discovery
+  enable_cloudmap                            = false
+  cloudmap_namespace_name                    = "demo.internal"
+  cloudmap_namespace_description             = "Demo namespace for service discovery"
+  cloudmap_create_ecs_service_discovery_role = true
+  cloudmap_services = {
+    "api-service" = {
+      name                                  = "api-service"
+      description                           = "API service for demo"
+      dns_record_type                       = "A"
+      routing_policy                        = "MULTIVALUE"
+      health_check_custom_config            = true
+      custom_health_check_failure_threshold = 1
+    }
+  }
 }
 
 ############################################
@@ -214,4 +230,24 @@ output "addon_versions" {
 output "namespace_names" {
   description = "List of created Kubernetes namespaces"
   value       = module.eks_fargate.namespace_names
+}
+
+output "cloudmap_namespace_id" {
+  description = "ID of the created CloudMap namespace"
+  value       = module.eks_fargate.cloudmap_namespace_id
+}
+
+output "cloudmap_namespace_name" {
+  description = "Name of the created CloudMap namespace"
+  value       = module.eks_fargate.cloudmap_namespace_name
+}
+
+output "cloudmap_services" {
+  description = "Map of created CloudMap services with their details"
+  value       = module.eks_fargate.cloudmap_services
+}
+
+output "cloudmap_service_arns" {
+  description = "Map of service names to their ARNs for ECS integration"
+  value       = module.eks_fargate.cloudmap_service_arns
 }
