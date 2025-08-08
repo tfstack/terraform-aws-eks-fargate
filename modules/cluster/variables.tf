@@ -101,6 +101,13 @@ variable "enable_oidc" {
   default     = true
 }
 
+# Optional: reuse an existing IAM OIDC provider instead of creating a new one
+variable "existing_oidc_provider_arn" {
+  description = "If set, the module will use this IAM OIDC provider ARN instead of creating one."
+  type        = string
+  default     = null
+}
+
 ##############################
 # CloudWatch Logging
 ##############################

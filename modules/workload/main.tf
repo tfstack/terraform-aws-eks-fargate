@@ -140,10 +140,7 @@ resource "kubernetes_deployment" "this" {
 
     template {
       metadata {
-        labels = merge({
-          app                      = var.name,
-          "app.kubernetes.io/name" = var.name
-        }, var.labels)
+        labels = local.common_labels
       }
 
       spec {

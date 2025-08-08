@@ -40,10 +40,16 @@ output "eks_fargate_pod_execution_role_name" {
 
 output "oidc_provider_arn" {
   description = "OIDC provider ARN for the EKS cluster, used for IRSA"
-  value       = try(aws_iam_openid_connect_provider.this[0].arn, null)
+  value = coalesce(
+    try(aws_iam_openid_connect_provider.this[0].arn, null),
+    try(data.aws_iam_openid_connect_provider.existing[0].arn, null)
+  )
 }
 
 output "oidc_provider_url" {
   description = "OIDC provider URL for the EKS cluster, used for IRSA"
-  value       = try(aws_iam_openid_connect_provider.this[0].url, null)
+  value = coalesce(
+    try(aws_iam_openid_connect_provider.this[0].url, null),
+    try(data.aws_iam_openid_connect_provider.existing[0].url, null)
+  )
 }

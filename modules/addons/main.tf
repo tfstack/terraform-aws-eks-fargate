@@ -78,62 +78,11 @@ resource "aws_eks_addon" "this" {
   tags = var.tags
 }
 
+# Manage CoreDNS Corefile to enable multicluster, if requested
+// CoreDNS Corefile management removed for clean baseline
+
 # Extra RBAC for CoreDNS to read EndpointSlices and MCS CRDs when CoreDNS addon is enabled
-resource "kubernetes_cluster_role" "coredns_mcs" {
-  count = var.enable_addons.coredns ? 1 : 0
-
-  metadata {
-    name = "coredns-mcs-access"
-    labels = {
-      "k8s-app"                      = "kube-dns"
-      "eks.amazonaws.com/component"  = "coredns"
-      "app.kubernetes.io/managed-by" = "terraform"
-    }
-  }
-
-  rule {
-    api_groups = ["discovery.k8s.io"]
-    resources  = ["endpointslices"]
-    verbs      = ["create", "get", "list", "patch", "update", "watch"]
-  }
-
-  rule {
-    api_groups = ["multicluster.x-k8s.io"]
-    resources  = ["serviceimports"]
-    verbs      = ["create", "get", "list", "patch", "update", "watch"]
-  }
-
-  rule {
-    api_groups = ["multicluster.x-k8s.io"]
-    resources  = ["serviceexports"]
-    verbs      = ["create", "get", "list", "patch", "update", "watch"]
-  }
-}
-
-resource "kubernetes_cluster_role_binding" "coredns_mcs" {
-  count = var.enable_addons.coredns ? 1 : 0
-
-  metadata {
-    name = "coredns-mcs-access"
-    labels = {
-      "k8s-app"                      = "kube-dns"
-      "eks.amazonaws.com/component"  = "coredns"
-      "app.kubernetes.io/managed-by" = "terraform"
-    }
-  }
-
-  role_ref {
-    api_group = "rbac.authorization.k8s.io"
-    kind      = "ClusterRole"
-    name      = kubernetes_cluster_role.coredns_mcs[0].metadata[0].name
-  }
-
-  subject {
-    kind      = "ServiceAccount"
-    name      = "coredns"
-    namespace = "kube-system"
-  }
-}
+// Extra CoreDNS RBAC for MCS CRDs removed for clean baseline
 
 # AWS Load Balancer Controller is now handled by the main addons loop above
 

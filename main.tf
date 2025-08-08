@@ -12,16 +12,17 @@ data "aws_caller_identity" "current" {}
 module "cluster" {
   source = "./modules/cluster"
 
-  cluster_name              = var.cluster_name
-  cluster_version           = var.cluster_version
-  tags                      = var.tags
-  vpc_id                    = var.vpc_id
-  cluster_vpc_config        = var.cluster_vpc_config
-  cluster_enabled_log_types = var.cluster_enabled_log_types
-  enable_cluster_encryption = var.enable_cluster_encryption
-  enable_oidc               = var.enable_oidc
-  eks_log_prevent_destroy   = var.eks_log_prevent_destroy
-  eks_log_retention_days    = var.eks_log_retention_days
+  cluster_name               = var.cluster_name
+  cluster_version            = var.cluster_version
+  tags                       = var.tags
+  vpc_id                     = var.vpc_id
+  cluster_vpc_config         = var.cluster_vpc_config
+  cluster_enabled_log_types  = var.cluster_enabled_log_types
+  enable_cluster_encryption  = var.enable_cluster_encryption
+  enable_oidc                = var.enable_oidc
+  existing_oidc_provider_arn = var.existing_oidc_provider_arn
+  eks_log_prevent_destroy    = var.eks_log_prevent_destroy
+  eks_log_retention_days     = var.eks_log_retention_days
 }
 
 #########################################
@@ -88,6 +89,10 @@ module "addons" {
     pod_identity   = var.pod_identity_agent_addon_version
   }
 
+  # Optional: manage CoreDNS Corefile to enable multicluster
+  enable_coredns_multicluster = var.enable_coredns_multicluster
+  coredns_corefile            = var.coredns_corefile
+
   depends_on = [
     module.fargate_profiles
   ]
@@ -114,45 +119,43 @@ module "cloudwatch_logging" {
   ]
 }
 
-# #########################################
-# # Module: CloudMap Integration
-# #########################################
+#########################################
+# Module: CloudMap (external module)
+#########################################
 
-# module "cloudmap_integration" {
-#   source = "./modules/cloudmap-integration"
+module "cloudmap" {
+  source = "tfstack/cloudmap/aws"
 
-#   enable_cloudmap                            = var.enable_cloudmap
-#   cloudmap_namespace_name                    = var.cloudmap_namespace_name
-#   cloudmap_namespace_description             = var.cloudmap_namespace_description
-#   vpc_id                                     = var.vpc_id
-#   cloudmap_services                          = var.cloudmap_services
-#   cloudmap_create_ecs_service_discovery_role = var.cloudmap_create_ecs_service_discovery_role
-#   tags                                       = var.tags
+  create_private_dns_namespace = var.enable_cloudmap
+  namespace_name               = var.cloudmap_namespace_name
+  namespace_description        = var.cloudmap_namespace_description
+  vpc_id                       = var.vpc_id
 
-#   depends_on = [
-#     module.cloudwatch_logging
-#   ]
-# }
+  services = var.cloudmap_services
 
-# #########################################
-# # Module: MCS Controller
-# #########################################
+  create_ecs_service_discovery_role = var.cloudmap_create_ecs_service_discovery_role
 
-# module "mcs_controller" {
-#   source = "./modules/mcs-controller"
-
-#   enabled            = var.enable_mcs_controller
-#   cluster_name       = var.cluster_name
-#   oidc_provider_arn  = module.cluster.oidc_provider_arn
-#   controller_version = var.mcs_controller_version
-#   tags               = var.tags
-
-#   depends_on = [
-#     module.addons
-#   ]
-# }
+  tags = var.tags
+}
 
 #########################################
+# Module: MCS Controller
+#########################################
+
+module "mcs_controller" {
+  source = "./modules/mcs-controller"
+
+  enabled                     = var.enable_mcs_controller
+  cluster_name                = var.cluster_name
+  oidc_provider_arn           = module.cluster.oidc_provider_arn
+  controller_version          = var.mcs_controller_version
+  fargate_execution_role_name = module.cluster.eks_fargate_pod_execution_role_name
+  tags                        = var.tags
+
+  depends_on = [
+    module.addons
+  ]
+}
 
 #########################################
 # Module: Workloads

@@ -132,66 +132,61 @@ output "workload_configmap_names" {
 # # CloudMap Service Discovery Outputs
 # #########################################
 
-# output "cloudmap_namespace_id" {
-#   description = "ID of the created CloudMap namespace"
-#   value       = try(module.cloudmap_integration.cloudmap_namespace_id, null)
-# }
+output "cloudmap_namespace_id" {
+  description = "ID of the created CloudMap namespace"
+  value       = try(module.cloudmap.cloudmap_namespace_id, null)
+}
 
-# output "cloudmap_namespace_name" {
-#   description = "Name of the created CloudMap namespace"
-#   value       = try(module.cloudmap_integration.cloudmap_namespace_name, null)
-# }
+output "cloudmap_namespace_name" {
+  description = "Name of the created CloudMap namespace"
+  value       = try(module.cloudmap.cloudmap_namespace_name, null)
+}
 
-# output "cloudmap_namespace_arn" {
-#   description = "ARN of the created CloudMap namespace"
-#   value       = try(module.cloudmap_integration.cloudmap_namespace_arn, null)
-# }
+output "cloudmap_namespace_arn" {
+  description = "ARN of the created CloudMap namespace"
+  value       = try(module.cloudmap.cloudmap_namespace_arn, null)
+}
 
-# output "cloudmap_services" {
-#   description = "Map of created CloudMap services with their details"
-#   value       = try(module.cloudmap_integration.cloudmap_services, {})
-# }
+output "cloudmap_services" {
+  description = "Map of created CloudMap services with their details"
+  value       = try(module.cloudmap.cloudmap_services, {})
+}
 
-# output "cloudmap_service_arns" {
-#   description = "Map of service names to their ARNs for ECS integration"
-#   value       = try(module.cloudmap_integration.cloudmap_service_arns, {})
-# }
+output "cloudmap_service_arns" {
+  description = "Map of CloudMap service names to their ARNs"
+  value       = try(module.cloudmap.cloudmap_service_arns, {})
+}
 
-# output "cloudmap_ecs_service_discovery_role_arn" {
-#   description = "ARN of the ECS service discovery IAM role"
-#   value       = try(module.cloudmap_integration.cloudmap_ecs_service_discovery_role_arn, null)
-# }
+output "cloudmap_ecs_service_discovery_role_arn" {
+  description = "ARN of the ECS service discovery role"
+  value       = try(module.cloudmap.cloudmap_ecs_service_discovery_role_arn, null)
+}
 
-# output "cloudmap_ecs_service_discovery_role_name" {
-#   description = "Name of the ECS service discovery IAM role"
-#   value       = try(module.cloudmap_integration.cloudmap_ecs_service_discovery_role_name, null)
-# }
+output "cloudmap_ecs_service_discovery_role_name" {
+  description = "Name of the ECS service discovery role"
+  value       = try(module.cloudmap.cloudmap_ecs_service_discovery_role_name, null)
+}
 
 # #########################################
 # # MCS Controller Outputs
 # #########################################
 
-# output "mcs_controller_namespace" {
-#   description = "Namespace where the MCS controller is deployed"
-#   value       = try(module.mcs_controller.controller_namespace, null)
-# }
+output "mcs_controller_namespace" {
+  description = "Namespace where the MCS controller is deployed"
+  value       = try(module.mcs_controller.controller_namespace, null)
+}
 
-# output "mcs_controller_service_account" {
-#   description = "Service account name for the MCS controller"
-#   value       = try(module.mcs_controller.controller_service_account_name, null)
-# }
+output "mcs_controller_service_account" {
+  description = "Service account name for the MCS controller"
+  value       = try(module.mcs_controller.controller_service_account_name, null)
+}
 
-# output "mcs_controller_role_arn" {
-#   description = "IAM role ARN for the MCS controller"
-#   value       = try(module.mcs_controller.controller_role_arn, null)
-# }
+output "mcs_controller_policy_arn" {
+  description = "IAM policy ARN for the MCS controller CloudMap permissions"
+  value       = try(module.mcs_controller.controller_policy_arn, null)
+}
 
-# output "mcs_controller_role_name" {
-#   description = "IAM role name for the MCS controller"
-#   value       = try(module.mcs_controller.controller_role_name, null)
-# }
-
-# output "mcs_controller_deployment_name" {
-#   description = "Name of the MCS controller deployment"
-#   value       = try(module.mcs_controller.controller_deployment_name, null)
-# }
+output "mcs_controller_deployment_name" {
+  description = "Name of the MCS controller deployment"
+  value       = try(module.mcs_controller.controller_deployment_name, null)
+}

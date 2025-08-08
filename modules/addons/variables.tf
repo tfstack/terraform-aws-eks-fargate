@@ -30,6 +30,22 @@ variable "addon_versions" {
 }
 
 #########################################
+# CoreDNS Corefile (optional override)
+#########################################
+
+variable "enable_coredns_multicluster" {
+  description = "If true and CoreDNS addon is enabled, manage the CoreDNS ConfigMap to include the multicluster plugin."
+  type        = bool
+  default     = false
+}
+
+variable "coredns_corefile" {
+  description = "Optional CoreDNS Corefile content. If null and multicluster is enabled, a sensible default with 'multicluster clusterset.local' will be applied."
+  type        = string
+  default     = null
+}
+
+#########################################
 # AWS Load Balancer Controller Variables
 #########################################
 

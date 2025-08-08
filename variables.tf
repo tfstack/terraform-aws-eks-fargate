@@ -56,6 +56,13 @@ variable "enable_oidc" {
   default     = true
 }
 
+# Optional: reuse an existing IAM OIDC provider instead of creating one
+variable "existing_oidc_provider_arn" {
+  description = "If set, the module will use this IAM OIDC provider ARN instead of creating a new one. Useful for existing clusters (e.g., created via eksctl associate-iam-oidc-provider)."
+  type        = string
+  default     = null
+}
+
 #########################################
 # VPC and Networking Configuration
 #########################################
@@ -160,6 +167,19 @@ variable "coredns_addon_version" {
   description = "Version of the CoreDNS addon"
   type        = string
   default     = "latest"
+}
+
+# Optional: manage CoreDNS Corefile to enable multicluster DNS
+variable "enable_coredns_multicluster" {
+  description = "If true and CoreDNS addon is enabled, manage the CoreDNS ConfigMap to include the multicluster plugin."
+  type        = bool
+  default     = false
+}
+
+variable "coredns_corefile" {
+  description = "Optional CoreDNS Corefile content. If null and multicluster is enabled, a sensible default with 'multicluster clusterset.local' will be applied."
+  type        = string
+  default     = null
 }
 
 # kube-proxy Addon
