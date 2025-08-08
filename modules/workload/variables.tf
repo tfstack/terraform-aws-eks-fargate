@@ -136,11 +136,7 @@ variable "service_annotations" {
   default     = {}
 }
 
-variable "enable_cloudmap_registration" {
-  description = "Whether to enable CloudMap service registration for this service"
-  type        = bool
-  default     = false
-}
+
 
 variable "replicas" {
   description = "Number of pod replicas to run"

@@ -10,8 +10,7 @@ locals {
       tags       = {}
       selectors = [
         { namespace = "default" },
-        { namespace = "kube-system" },
-        { namespace = "cloudmap-system" }
+        { namespace = "kube-system" }
       ]
     } : null,
 

@@ -94,24 +94,6 @@ module "addons" {
 }
 
 #########################################
-# Module: AWS Load Balancer Controller
-#########################################
-
-module "aws_load_balancer_controller" {
-  source = "./modules/aws-load-balancer-controller"
-
-  enabled           = var.enable_aws_load_balancer_controller
-  cluster_name      = var.cluster_name
-  vpc_id            = var.vpc_id
-  oidc_provider_arn = module.cluster.oidc_provider_arn
-  tags              = var.tags
-
-  depends_on = [
-    module.addons
-  ]
-}
-
-#########################################
 # Module: CloudWatch Logging
 #########################################
 
@@ -132,47 +114,45 @@ module "cloudwatch_logging" {
   ]
 }
 
+# #########################################
+# # Module: CloudMap Integration
+# #########################################
+
+# module "cloudmap_integration" {
+#   source = "./modules/cloudmap-integration"
+
+#   enable_cloudmap                            = var.enable_cloudmap
+#   cloudmap_namespace_name                    = var.cloudmap_namespace_name
+#   cloudmap_namespace_description             = var.cloudmap_namespace_description
+#   vpc_id                                     = var.vpc_id
+#   cloudmap_services                          = var.cloudmap_services
+#   cloudmap_create_ecs_service_discovery_role = var.cloudmap_create_ecs_service_discovery_role
+#   tags                                       = var.tags
+
+#   depends_on = [
+#     module.cloudwatch_logging
+#   ]
+# }
+
+# #########################################
+# # Module: MCS Controller
+# #########################################
+
+# module "mcs_controller" {
+#   source = "./modules/mcs-controller"
+
+#   enabled            = var.enable_mcs_controller
+#   cluster_name       = var.cluster_name
+#   oidc_provider_arn  = module.cluster.oidc_provider_arn
+#   controller_version = var.mcs_controller_version
+#   tags               = var.tags
+
+#   depends_on = [
+#     module.addons
+#   ]
+# }
+
 #########################################
-# Module: CloudMap Service Discovery
-#########################################
-
-module "cloudmap" {
-  source = "tfstack/cloudmap/aws"
-  count  = var.enable_cloudmap ? 1 : 0
-
-  create_private_dns_namespace      = var.enable_cloudmap
-  namespace_name                    = var.cloudmap_namespace_name
-  namespace_description             = var.cloudmap_namespace_description
-  vpc_id                            = var.vpc_id
-  services                          = var.cloudmap_services
-  create_ecs_service_discovery_role = var.cloudmap_create_ecs_service_discovery_role
-  tags                              = var.tags
-
-  depends_on = [
-    module.cloudwatch_logging
-  ]
-}
-
-#########################################
-# Module: CloudMap Controller for K8s
-#########################################
-
-module "cloudmap_controller" {
-  source = "./modules/cloudmap-controller"
-  count  = var.enable_cloudmap && var.enable_cloudmap_controller ? 1 : 0
-
-  cluster_name                    = var.cluster_name
-  vpc_id                          = var.vpc_id
-  oidc_provider_arn               = module.cluster.oidc_provider_arn
-  cloudmap_namespace_name         = var.cloudmap_namespace_name
-  enable_load_balancer_controller = var.enable_cloudmap_load_balancer_integration
-  tags                            = var.tags
-
-  depends_on = [
-    module.addons,
-    module.cloudmap
-  ]
-}
 
 #########################################
 # Module: Workloads
@@ -215,11 +195,10 @@ module "workload" {
   configmaps      = try(each.value.configmaps, [])
 
   # Service configuration
-  create_service               = try(each.value.create_service, false)
-  service_type                 = try(each.value.service_type, "ClusterIP")
-  service_ports                = try(each.value.service_ports, [])
-  service_annotations          = try(each.value.service_annotations, {})
-  enable_cloudmap_registration = try(each.value.enable_cloudmap_registration, false)
+  create_service      = try(each.value.create_service, false)
+  service_type        = try(each.value.service_type, "ClusterIP")
+  service_ports       = try(each.value.service_ports, [])
+  service_annotations = try(each.value.service_annotations, {})
 
   depends_on = [
     module.addons,

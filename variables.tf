@@ -267,8 +267,7 @@ variable "workloads" {
       target_port = number
       protocol    = optional(string, "TCP")
     })), [])
-    service_annotations          = optional(map(string), {})
-    enable_cloudmap_registration = optional(bool, false)
+    service_annotations = optional(map(string), {})
   }))
   default = []
 
@@ -284,6 +283,10 @@ variable "workloads" {
     error_message = "Each workload with IRSA enabled must include both 'oidc_provider_arn' and at least one 'policy_arn'."
   }
 }
+
+
+
+
 
 #########################################
 # CloudMap Service Discovery Configuration
@@ -333,33 +336,7 @@ variable "cloudmap_create_ecs_service_discovery_role" {
   default     = false
 }
 
-variable "enable_cloudmap_controller" {
-  description = "Enable CloudMap controller for Kubernetes service discovery"
-  type        = bool
-  default     = false
-}
 
-variable "enable_cloudmap_load_balancer_integration" {
-  description = "Enable AWS Load Balancer Controller integration with CloudMap"
-  type        = bool
-  default     = false
-}
-
-#########################################
-# AWS Load Balancer Controller Configuration
-#########################################
-
-variable "enable_aws_load_balancer_controller" {
-  description = "Enable AWS Load Balancer Controller addon"
-  type        = bool
-  default     = false
-}
-
-variable "aws_load_balancer_controller_addon_version" {
-  description = "Version of AWS Load Balancer Controller addon to use"
-  type        = string
-  default     = null
-}
 
 #########################################
 # Common Metadata and Tagging
@@ -368,4 +345,26 @@ variable "tags" {
   description = "A map of tags to use on all resources"
   type        = map(string)
   default     = {}
+}
+
+#########################################
+# MCS Controller Configuration
+#########################################
+
+variable "enable_mcs_controller" {
+  description = "Enable AWS MCS (Multicluster Service) controller"
+  type        = bool
+  default     = false
+
+  # Guard: MCS controller requires IRSA (OIDC) to assume its IAM role
+  validation {
+    condition     = var.enable_mcs_controller == false || var.enable_oidc == true
+    error_message = "enable_oidc must be true when enable_mcs_controller is true."
+  }
+}
+
+variable "mcs_controller_version" {
+  description = "Version of the MCS controller to install"
+  type        = string
+  default     = "v0.3.1"
 }

@@ -251,22 +251,17 @@ resource "kubernetes_deployment" "this" {
 }
 
 #########################################
-# Kubernetes Service for CloudMap Integration
+# Kubernetes Service
 #########################################
 
 resource "kubernetes_service" "this" {
   count = var.create_service ? 1 : 0
 
   metadata {
-    name      = var.name
-    namespace = local.target_namespace
-    labels    = local.common_labels
-    annotations = merge(
-      var.service_annotations,
-      var.enable_cloudmap_registration ? {
-        "service.cloudmap/register" = "true"
-      } : {}
-    )
+    name        = var.name
+    namespace   = local.target_namespace
+    labels      = local.common_labels
+    annotations = var.service_annotations
   }
 
   spec {

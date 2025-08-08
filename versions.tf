@@ -20,7 +20,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.cluster.eks_cluster_endpoint
     cluster_ca_certificate = module.cluster.eks_cluster_ca_cert
     token                  = module.cluster.eks_cluster_auth_token
